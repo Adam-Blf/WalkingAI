@@ -8,4 +8,4 @@ services:
     branch: main
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.18
+        value: 3.11.9
