@@ -6,6 +6,7 @@ services:
     startCommand: streamlit run streamlit_app.py
     plan: free
     branch: main
+    # Force redeploy
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
