@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: walking-ai
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run streamlit_app.py
+    plan: free
+    branch: main
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
