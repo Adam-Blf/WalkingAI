@@ -1,0 +1,6 @@
+gymnasium
+stable-baselines3
+shimmy>=1.0.0
+pygame
+pymunk
+numpy
