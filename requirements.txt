@@ -4,3 +4,5 @@ shimmy>=1.0.0
 pygame
 pymunk
 numpy
+streamlit
+
