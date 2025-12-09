@@ -1,3 +1,11 @@
+Dernier commit: 23/11/2025 | Langage principal: Python | Nombre de langages: 1
+
+Construit avec les outils et technologies : 
+Python
+
+🇫🇷 Français | 🇬🇧 Anglais | 🇪🇸 Espagnol | 🇮🇹 Italien | 🇵🇹 Portugais | 🇷🇺 Russe | 🇩🇪 Allemand | 🇹🇷 Turc
+
+
 # IA Marcheuse (Walking AI)
 
 Ce projet utilise l'apprentissage par renforcement (Reinforcement Learning) pour apprendre à un robot bipède à marcher.
