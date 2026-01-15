@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marcheur Évolutif + Gemini AI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.8);
+            --accent-color: #38bdf8;
+            --accent-secondary: #a855f7;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            border-bottom: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        /* Grid Background Effect */
+        #canvas-container::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            width: 280px;
+            max-height: calc(100vh - 150px);
+            overflow-y: auto;
+            pointer-events: auto;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        h1 { 
+            margin: 0 0 15px 0; 
+            font-size: 1.1rem; 
+            font-weight: 600;
+            color: var(--accent-color); 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .stat { 
+            font-size: 0.9rem; 
+            margin-bottom: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+
+        .val { 
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700; 
+            color: var(--text-primary); 
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        #controls {
+            padding: 20px;
+            background: #1e293b;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border-color);
+            z-index: 10;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        button:hover { 
+            background: rgba(255, 255, 255, 0.1); 
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.ai-btn { 
+            border-color: var(--accent-secondary); 
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(168, 85, 247, 0.1));
+            color: #e9d5ff;
+        }
+
+        button.ai-btn:hover { 
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(168, 85, 247, 0.2));
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+        }
+        
+        /* Slider Vitesse */
+        .slider-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        input[type=range] { 
+            accent-color: var(--accent-color); 
+            cursor: pointer; 
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        #target-line {
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 2px;
+            background: repeating-linear-gradient(transparent, transparent 10px, var(--accent-color) 10px, var(--accent-color) 20px);
+            opacity: 0.5;
+            pointer-events: none;
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        /* Zone Analyse IA */
+        #ai-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(168, 85, 247, 0.05);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .ai-title { 
+            color: var(--accent-secondary); 
+            font-weight: 700; 
+            margin-bottom: 8px; 
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .ai-content { 
+            line-height: 1.6; 
+            white-space: pre-wrap; 
+        }
+
+        .loading { animation: pulse 1.5s infinite ease-in-out; color: var(--accent-secondary); }
+        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+    </style>
+</head>
+<body>
+
+<div id="canvas-container">
+    <div id="ui-layer">
+        <h1>Évolution Marche</h1>
+        <div class="stat">Génération <span id="gen-display" class="val">1</span></div>
+        <div class="stat">Record Distance <span id="dist-display" class="val" style="color:#ff0055">0m</span></div>
+        <div class="stat">Vivants <span id="live-display" class="val">50</span></div>
+        <div class="stat">Vitesse Sim <span id="speed-display" class="val">x1</span></div>
+        
+        <!-- Zone de rapport IA -->
+        <div id="ai-panel">
+            <span class="ai-title">✨ Rapport Exobiologiste</span>
+            <div id="ai-text" class="ai-content">En attente...</div>
+        </div>
+
+        <div style="margin-top:15px; font-size: 10px; color:#888;">
+            Objectif : Aller vers la droite sans tomber.
+        </div>
+    </div>
+    <!-- Marqueur visuel de distance record -->
+    <div id="target-line" style="left: 200px;"></div>
+</div>
+
+<div id="controls">
+    <button onclick="app.reset()">Reset</button>
+    
+    <div class="slider-container">
+        <span style="font-size:12px;">Vitesse:</span>
+        <input type="range" id="speedSlider" min="1" max="50" value="1" oninput="app.setSpeed(this.value)">
+    </div>
+
+    <div class="slider-container">
+        <span style="font-size:12px;">Apprentissage:</span>
+        <input type="range" id="mutationSlider" min="1" max="100" value="5" oninput="app.setMutation(this.value)">
+        <span id="mutation-display" style="font-size:10px; color:#aaa">5%</span>
+    </div>
+
+    <!-- Nouveau bouton IA -->
+    <button class="ai-btn" onclick="app.analyzeSpecies()">✨ Analyser l'Espèce</button>
+</div>
+
+<script>
+// --- CONFIGURATION ---
+const CFG = {
+    popSize: 20,        // Optimisation : Moins d'IA pour plus de fluidité
+    mutationRate: 0.05, // Taux de mutation
+    inputs: 8,          // TorsoAngle, TorsoY, ThighL, ThighR, KneeL, KneeR, ArmL, ArmR
+    outputs: 6,         // HipL, HipR, KneeL, KneeR, ShoulderL, ShoulderR
+    duration: 900       // Temps max par génération (frames)
+};
+
+// --- 1. CERVEAU (Réseau de Neurones Rapide) ---
+class Brain {
+    constructor(weights = null) {
+        // Architecture simple : Input -> Hidden (8) -> Output
+        // Stocké à plat pour la perf
+        this.inputSize = CFG.inputs;
+        this.hiddenSize = 8;
+        this.outputSize = CFG.outputs;
+        
+        if (weights) {
+            this.weights = weights; // Float32Array
+        } else {
+            // Init random weights
+            const size = (this.inputSize * this.hiddenSize) + (this.hiddenSize * this.outputSize) + this.hiddenSize + this.outputSize;
+            this.weights = new Float32Array(size).map(() => Math.random() * 2 - 1);
+        }
+    }
+
+    compute(inputs) {
+        let wIdx = 0;
+        const hidden = new Float32Array(this.hiddenSize);
+        
+        // Input -> Hidden
+        for(let i=0; i<this.hiddenSize; i++) {
+            let sum = 0;
+            for(let j=0; j<this.inputSize; j++) {
+                sum += inputs[j] * this.weights[wIdx++];
+            }
+            sum += this.weights[wIdx++]; // Bias
+            hidden[i] = Math.tanh(sum);
+        }
+        
+        // Hidden -> Output
+        const output = new Float32Array(this.outputSize);
+        for(let i=0; i<this.outputSize; i++) {
+            let sum = 0;
+            for(let j=0; j<this.hiddenSize; j++) {
+                sum += hidden[j] * this.weights[wIdx++];
+            }
+            sum += this.weights[wIdx++]; // Bias
+            output[i] = Math.tanh(sum); // -1 à 1
+        }
+        return output;
+    }
+
+    mutate(rate) {
+        const newW = new Float32Array(this.weights);
+        for(let i=0; i<newW.length; i++) {
+            if(Math.random() < rate) {
+                newW[i] += (Math.random() * 0.5 - 0.25); // Petite variation
+            }
+        }
+        return new Brain(newW);
+    }
+}
+
+// --- 2. CORPS (Marcheur Simplifié) ---
+const Cat = { GROUND: 0x1, BOT: 0x2 };
+
+class Walker {
+    constructor(x, y, brain) {
+        this.brain = brain || new Brain();
+        this.dead = false;
+        this.lifeTime = 0;
+        this.fitness = 0;
+        this.startX = x;
+        
+        // Collision Filter pour éviter auto-collision des membres
+        const group = Matter.Body.nextGroup(true);
+        const opts = { 
+            friction: 0.8, frictionStatic: 10, restitution: 0.0, density: 0.04,
+            collisionFilter: { category: Cat.BOT, mask: Cat.GROUND, group: group }
+        };
+
+        // --- ANATOMIE HUMAINE ---
+        
+        // Tête
+        this.head = Matter.Bodies.circle(x, y-70, 12, { ...opts, density: 0.01, label: 'head' });
+        
+        // Torse
+        this.torso = Matter.Bodies.rectangle(x, y-40, 24, 50, { ...opts, label: 'torso' });
+        
+        // Jambe Gauche
+        this.thighL = Matter.Bodies.rectangle(x-5, y-10, 10, 40, opts);
+        this.calfL = Matter.Bodies.rectangle(x-5, y+30, 8, 40, opts);
+        this.footL = Matter.Bodies.rectangle(x-2, y+52, 20, 6, { ...opts, friction: 1, label: 'foot' }); // Pied
+        
+        // Jambe Droite
+        this.thighR = Matter.Bodies.rectangle(x+5, y-10, 10, 40, opts);
+        this.calfR = Matter.Bodies.rectangle(x+5, y+30, 8, 40, opts);
+        this.footR = Matter.Bodies.rectangle(x+8, y+52, 20, 6, { ...opts, friction: 1, label: 'foot' }); // Pied
+
+        // Bras Gauche
+        this.armL = Matter.Bodies.rectangle(x-12, y-30, 8, 35, opts);
+        this.forearmL = Matter.Bodies.rectangle(x-12, y, 6, 35, opts);
+
+        // Bras Droit
+        this.armR = Matter.Bodies.rectangle(x+12, y-30, 8, 35, opts);
+        this.forearmR = Matter.Bodies.rectangle(x+12, y, 6, 35, opts);
+
+        this.composite = Matter.Composite.create();
+        Matter.Composite.add(this.composite, [
+            this.head, this.torso, 
+            this.thighL, this.calfL, this.footL,
+            this.thighR, this.calfR, this.footR,
+            this.armL, this.forearmL,
+            this.armR, this.forearmR
+        ]);
+
+        // --- ARTICULATIONS ---
+        const connect = (a, b, pa, pb, stiff=0.9) => Matter.Constraint.create({
+            bodyA: a, bodyB: b, pointA: pa, pointB: pb, stiffness: stiff, length: 0
+        });
+
+        // Cou
+        this.neck = connect(this.head, this.torso, {x:0, y:12}, {x:0, y:-25}, 1);
+        
+        // Hanches
+        this.hipL = connect(this.torso, this.thighL, {x:-8, y:25}, {x:0, y:-20});
+        this.hipR = connect(this.torso, this.thighR, {x:8, y:25}, {x:0, y:-20});
+        
+        // Genoux
+        this.kneeL = connect(this.thighL, this.calfL, {x:0, y:20}, {x:0, y:-20});
+        this.kneeR = connect(this.thighR, this.calfR, {x:0, y:20}, {x:0, y:-20});
+
+        // Chevilles (Semi-rigides)
+        this.ankleL = connect(this.calfL, this.footL, {x:0, y:20}, {x:-3, y:-3}, 0.6);
+        this.ankleR = connect(this.calfR, this.footR, {x:0, y:20}, {x:-3, y:-3}, 0.6);
+
+        // Epaules
+        this.shoulderL = connect(this.torso, this.armL, {x:-12, y:-20}, {x:0, y:-15});
+        this.shoulderR = connect(this.torso, this.armR, {x:12, y:-20}, {x:0, y:-15});
+
+        // Coudes (Passifs pour l'instant, pour simplifier)
+        this.elbowL = connect(this.armL, this.forearmL, {x:0, y:15}, {x:0, y:-15});
+        this.elbowR = connect(this.armR, this.forearmR, {x:0, y:15}, {x:0, y:-15});
+
+        Matter.Composite.add(this.composite, [
+            this.neck, 
+            this.hipL, this.hipR, 
+            this.kneeL, this.kneeR,
+            this.ankleL, this.ankleR,
+            this.shoulderL, this.shoulderR,
+            this.elbowL, this.elbowR
+        ]);
+    }
+
+    update() {
+        if(this.dead) return;
+        this.lifeTime++;
+
+        // 1. Capteurs (Inputs)
+        const tAngle = this.torso.angle;
+        const inputs = [
+            tAngle / 1.5,                               // Angle torse
+            (this.torso.position.y - 500) / 200,        // Hauteur
+            this.thighL.angle - tAngle,                 // Angle Hanche G
+            this.thighR.angle - tAngle,                 // Angle Hanche D
+            this.calfL.angle - this.thighL.angle,       // Angle Genou G
+            this.calfR.angle - this.thighR.angle,       // Angle Genou D
+            this.armL.angle - tAngle,                   // Angle Bras G
+            this.armR.angle - tAngle                    // Angle Bras D
+        ];
+
+        // 2. Décision
+        const out = this.brain.compute(inputs);
+
+        // 3. Action (Muscles)
+        const force = 0.35; // Un peu plus de force pour bouger ce corps complexe
+        
+        const apply = (b1, b2, val) => {
+            const torque = val * force;
+            Matter.Body.setAngularVelocity(b1, b1.angularVelocity - torque * 0.5); // Action
+            Matter.Body.setAngularVelocity(b2, b2.angularVelocity + torque * 0.5); // Réaction
+        };
+
+        apply(this.torso, this.thighL, out[0]); // Hanche G
+        apply(this.torso, this.thighR, out[1]); // Hanche D
+        apply(this.thighL, this.calfL, out[2]); // Genou G
+        apply(this.thighR, this.calfR, out[3]); // Genou D
+        apply(this.torso, this.armL, out[4]);   // Epaule G
+        apply(this.torso, this.armR, out[5]);   // Epaule D
+
+        // 4. Vérification Mort
+        // Si la tête touche le sol ou le torse est trop bas
+        if (Math.abs(tAngle) > 1.5 || this.head.position.y > window.innerHeight - 50) {
+            this.dead = true;
+        }
+        
+        // Calcul Fitness
+        let distance = Math.max(0, this.torso.position.x - this.startX);
+        this.fitness = distance;
+        if(this.dead && distance < 50) this.fitness = 0;
+    }
+}
+
+// --- 3. MOTEUR D'ÉVOLUTION ---
+const engine = Matter.Engine.create();
+const world = engine.world;
+const render = Matter.Render.create({
+    element: document.getElementById('canvas-container'),
+    engine: engine,
+    options: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        wireframes: false,
+        background: '#222',
+        showAngleIndicator: false
+    }
+});
+
+// Sol infini (on le déplace avec la caméra)
+const ground = Matter.Bodies.rectangle(0, window.innerHeight - 10, 100000, 60, { 
+    isStatic: true, label: 'ground', friction: 1, render: { fillStyle: '#444' } 
+});
+Matter.Body.setPosition(ground, {x: 50000, y: window.innerHeight - 10});
+Matter.World.add(world, ground);
+
+let walkers = [];
+let generation = 1;
+let timer = 0;
+let bestDistanceRecord = 0;
+let simulationSpeed = 1;
+
+function initGen(oldWalkers = []) {
+    // Nettoyage
+    walkers.forEach(w => Matter.World.remove(world, w.composite));
+    walkers = [];
+
+    // Création population
+    for(let i=0; i<CFG.popSize; i++) {
+        let brain = null;
+        if(oldWalkers.length > 0) {
+            // Sélection naturelle (Roulette)
+            const pick = () => {
+                let r = Math.random() * oldWalkers.totalFitness;
+                for(let w of oldWalkers) {
+                    r -= w.fitness;
+                    if(r <= 0) return w.brain;
+                }
+                return oldWalkers[0].brain;
+            };
+            brain = pick().mutate(CFG.mutationRate);
+        }
+        
+        const w = new Walker(200, window.innerHeight - 155, brain);
+        Matter.World.add(world, w.composite);
+        walkers.push(w);
+    }
+}
+
+function nextGen() {
+    // Calculer fitness et trier
+    let totalFitness = 0;
+    let maxDist = 0;
+    
+    walkers.forEach(w => {
+        // Bonus de distance pur
+        w.fitness = Math.max(0, w.torso.position.x - w.startX);
+        // Bonus pour rester en vie (encourage la stabilité)
+        if(!w.dead) w.fitness += 50; 
+        
+        // Pénalité si immobile
+        if(w.fitness < 10) w.fitness = 0; 
+        
+        // Distance record de cette génération pour l'UI
+        if(w.torso.position.x - w.startX > maxDist) maxDist = w.torso.position.x - w.startX;
+        
+        // Puissance carré pour favoriser grandement les meilleurs
+        w.fitness = w.fitness * w.fitness;
+        
+        totalFitness += w.fitness;
+    });
+
+    walkers.totalFitness = totalFitness;
+    walkers.sort((a,b) => b.fitness - a.fitness);
+    
+    // Record global
+    if(maxDist > bestDistanceRecord) {
+        bestDistanceRecord = maxDist;
+        document.getElementById('dist-display').innerText = Math.floor(bestDistanceRecord) + "m";
+        document.getElementById('target-line').style.left = (200 + bestDistanceRecord) + "px";
+    }
+
+    generation++;
+    document.getElementById('gen-display').innerText = generation;
+    
+    initGen(walkers);
+    timer = 0;
+}
+
+// Boucle principale
+function loop() {
+    requestAnimationFrame(loop);
+
+    // Accélération temporelle
+    for(let s=0; s<simulationSpeed; s++) {
+        Matter.Engine.update(engine, 1000 / 60);
+        
+        let allDead = true;
+        let bestX = -Infinity;
+        let bestWalker = null;
+
+        walkers.forEach(w => {
+            w.update();
+            if(!w.dead) {
+                allDead = false;
+                if(w.torso.position.x > bestX) {
+                    bestX = w.torso.position.x;
+                    bestWalker = w;
+                }
+            }
+        });
+
+        timer++;
+        if(allDead || timer >= CFG.duration) {
+            nextGen();
+            return; // On arrête cette frame
+        }
+    }
+
+    // Rendu (Caméra suit le meilleur)
+    let best = walkers.find(w => !w.dead);
+    if(!best) best = walkers[0]; // Si tous morts, on regarde le premier (ou le dernier mort)
+    
+    // Trouver le meilleur absolu pour la caméra
+    let leader = walkers[0];
+    walkers.forEach(w => { if(w.torso.position.x > leader.torso.position.x) leader = w; });
+
+    // Centrer la vue
+    if(leader && leader.torso) {
+        const shiftX = -leader.torso.position.x + window.innerWidth / 3;
+        Matter.Render.lookAt(render, {
+            min: { x: leader.torso.position.x - window.innerWidth / 3, y: 0 },
+            max: { x: leader.torso.position.x + window.innerWidth * 2/3, y: window.innerHeight }
+        });
+    }
+
+    // UI Updates
+    document.getElementById('live-display').innerText = walkers.filter(w => !w.dead).length;
+}
+
+// Démarrage
+initGen();
+Matter.Render.run(render);
+loop();
+
+// Interface externe
+const app = {
+    reset: () => {
+        generation = 1;
+        bestDistanceRecord = 0;
+        document.getElementById('gen-display').innerText = 1;
+        document.getElementById('dist-display').innerText = "0m";
+        initGen();
+    },
+    setSpeed: (val) => {
+        simulationSpeed = parseInt(val);
+        document.getElementById('speed-display').innerText = "x" + val;
+    },
+    setMutation: (val) => {
+        CFG.mutationRate = parseInt(val) / 100;
+        document.getElementById('mutation-display').innerText = val + "%";
+    },
+    analyzeSpecies: () => {
+        const panel = document.getElementById('ai-panel');
+        const text = document.getElementById('ai-text');
+        panel.style.display = 'block';
+        text.innerHTML = '<span class="loading">Analyse des données biométriques en cours...</span>';
+        
+        // Simulation d'une analyse IA
+        setTimeout(() => {
+            const bestDist = Math.floor(bestDistanceRecord);
+            let analysis = "";
+            
+            if(bestDist < 50) {
+                analysis = "⚠️ **Stade Primitif**\nLes spécimens peinent à coordonner leurs membres inférieurs. La gravité semble être leur pire ennemi. Suggère une augmentation du taux de mutation pour débloquer de nouvelles synapses.";
+            } else if(bestDist < 200) {
+                analysis = "🌱 **Début d'Adaptation**\nQuelques individus ont compris le concept de 'jambe d'appui'. La démarche reste chaotique (style 'zombie ivre'), mais la progression est notable.";
+            } else if(bestDist < 1000) {
+                analysis = "🏃 **Locomotion Validée**\nL'espèce a développé une technique de saut ou de course efficace. L'équilibre est maîtrisé. Prochaine étape : optimisation énergétique.";
+            } else {
+                analysis = "🚀 **Super-Prédateurs**\nCes créatures ont transcendé la marche. Elles glissent sur le sol avec une efficacité terrifiante. Prêtes pour la domination mondiale.";
+            }
+            
+            analysis += `\n\n📊 **Données** : Génération ${generation} | Record ${bestDist}m`;
+            text.innerText = analysis;
+        }, 1500);
+    }
+};
+</script>
+</body>
+</html>
