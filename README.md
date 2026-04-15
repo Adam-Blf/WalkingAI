@@ -53,3 +53,9 @@ L'environnement `BipedalWalker-v3` donne des points à l'IA :
 -   **Punition (-)** : Tomber au sol (-100 points), utiliser trop de force moteur (coût énergétique).
 
 L'IA cherche à maximiser son score total.
+
+---
+
+<p align="center">
+  <sub>Par <a href="https://adam.beloucif.com">Adam Beloucif</a> · Data Engineer & Fullstack Developer · <a href="https://github.com/Adam-Blf">GitHub</a></sub>
+</p>
