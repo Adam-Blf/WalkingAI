@@ -20,6 +20,12 @@ Simulation d'IA apprenant à marcher (Reinforcement Learning).
 
 # IA Marcheuse (Walking AI)
 
+![Status](https://img.shields.io/badge/status-academic-blue)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)
+![Gymnasium](https://img.shields.io/badge/Gymnasium-RL-0081A7)
+![Render](https://img.shields.io/badge/deploy-Render-46E3B7?logo=render&logoColor=white)
+
 Ce projet utilise l'apprentissage par renforcement (Reinforcement Learning) pour apprendre à un robot bipède à marcher.
 
 ## Prérequis
