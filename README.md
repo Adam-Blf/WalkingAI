@@ -33,6 +33,23 @@ Simulation d'IA apprenant à marcher (Reinforcement Learning).
 
 Ce projet utilise l'apprentissage par renforcement (Reinforcement Learning) pour apprendre à un robot bipède à marcher.
 
+## Architecture
+
+```mermaid
+flowchart TB
+    ENV["custom_env.py<br/>SimpleWalkerEnv · Gymnasium"]
+    TRAIN["train.py<br/>PPO · stable-baselines3"]
+    MODELS["models/PPO<br/>politiques sauvegardées"]
+    VIZ["visualize.py<br/>rendu de l'agent entraîné"]
+    DASH["streamlit_app.py<br/>dashboard · métriques"]
+    DEPLOY["Render<br/>render.yaml · déploiement"]
+    ENV --> TRAIN
+    TRAIN --> MODELS
+    MODELS --> VIZ
+    MODELS --> DASH
+    DASH --> DEPLOY
+```
+
 ## Prérequis
 
 1.  Installer Python (si ce n'est pas déjà fait).
