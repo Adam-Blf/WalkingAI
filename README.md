@@ -37,12 +37,12 @@ Ce projet utilise l'apprentissage par renforcement (Reinforcement Learning) pour
 
 ```mermaid
 flowchart TB
-    ENV["custom_env.py<br/>SimpleWalkerEnv · Gymnasium"]
-    TRAIN["train.py<br/>PPO · stable-baselines3"]
+    ENV["custom_env.py<br/>SimpleWalkerEnv - Gymnasium"]
+    TRAIN["train.py<br/>PPO - stable-baselines3"]
     MODELS["models/PPO<br/>politiques sauvegardées"]
     VIZ["visualize.py<br/>rendu de l'agent entraîné"]
-    DASH["streamlit_app.py<br/>dashboard · métriques"]
-    DEPLOY["Render<br/>render.yaml · déploiement"]
+    DASH["streamlit_app.py<br/>dashboard - métriques"]
+    DEPLOY["Render<br/>render.yaml - déploiement"]
     ENV --> TRAIN
     TRAIN --> MODELS
     MODELS --> VIZ
@@ -85,7 +85,7 @@ L'IA cherche à maximiser son score total.
 ---
 
 <p align="center">
-  <sub>Par <a href="https://adam.beloucif.com">Adam Beloucif</a> · Data Engineer & Fullstack Developer · <a href="https://github.com/Adam-Blf">GitHub</a> · <a href="https://www.linkedin.com/in/adambeloucif/">LinkedIn</a></sub>
+  <sub>Par <a href="https://adam.beloucif.com">Adam Beloucif</a> - Data Engineer & Fullstack Developer - <a href="https://github.com/Adam-Blf">GitHub</a> - <a href="https://www.linkedin.com/in/adambeloucif/">LinkedIn</a></sub>
 </p>
 
 
